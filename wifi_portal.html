@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Wi-Fi Access Portal</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #08111f, #142d49);
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        .portal {
+            width: 100%;
+            max-width: 430px;
+            background: #17263a;
+            border: 1px solid #33465f;
+            border-radius: 18px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .wifi-icon {
+            font-size: 45px;
+            text-align: center;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 25px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #a9b8ca;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .network {
+            background: #20364f;
+            border: 1px solid #3d5875;
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 22px;
+        }
+
+        .network strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .network small {
+            color: #a9b8ca;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border-radius: 8px;
+            border: 1px solid #465d78;
+            background: #0e1a2a;
+            color: white;
+            margin-bottom: 18px;
+            font-size: 15px;
+        }
+
+        .terms {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            font-size: 12px;
+            color: #b9c5d4;
+            margin-bottom: 20px;
+        }
+
+        .terms input {
+            width: auto;
+            margin: 2px 0 0;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #1687e8;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0872ce;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .footer {
+            text-align: center;
+            color: #8193a9;
+            font-size: 11px;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="portal">
+
+    <div class="wifi-icon">📶</div>
+
+    <h1>Public Wi-Fi Access</h1>
+
+    <p class="subtitle">
+        Welcome! Connect to our simulated public wireless network.
+    </p>
+
+    <div class="network">
+        <strong>Public_Free_WiFi</strong>
+        <small>Open network | Internet access simulation</small>
+    </div>
+
+    <form id="wifiForm">
+
+        <label for="username">Username or Guest Name</label>
+
+        <input
+            type="text"
+            id="username"
+            placeholder="Enter your name"
+            required
+        >
+
+        <div class="terms">
+            <input type="checkbox" id="terms" required>
+
+            <label for="terms">
+                I agree to the simulated public Wi-Fi usage terms.
+            </label>
+        </div>
+
+        <button type="submit">Connect to Wi-Fi</button>
+
+    </form>
+
+    <div id="message"></div>
+
+    <div class="footer">
+        AI-Based Public Wi-Fi Security Monitoring Prototype
+    </div>
+
+</div>
+
+<script>
+    document.getElementById("wifiForm").addEventListener("submit", function(event) {
+
+        event.preventDefault();
+
+        const username = document.getElementById("username").value.trim();
+
+        if (!username) {
+            return;
+        }
+
+        sessionStorage.setItem("wifi_username", username);
+
+        document.getElementById("message").textContent =
+            "Connection successful! Welcome, " + username +
+            ". You are now connected to the simulated public Wi-Fi network.";
+
+        document.getElementById("message").style.color = "#4ade80";
+
+    });
+</script>
+
+</body>
+</html>
