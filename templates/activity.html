@@ -1,0 +1,470 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wi-Fi Network Activity Simulator</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0b1220;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #142238;
+            padding: 20px 6%;
+            border-bottom: 1px solid #263b55;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .connection {
+            color: #4ade80;
+            font-size: 13px;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .welcome {
+            margin-bottom: 30px;
+        }
+
+        .welcome h1 {
+            font-size: 29px;
+            margin-bottom: 10px;
+        }
+
+        .welcome p {
+            color: #a9b8ca;
+            line-height: 1.6;
+        }
+
+        .user-card {
+            background: #17263a;
+            border: 1px solid #33465f;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 30px;
+        }
+
+        .user-card span {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .section-title {
+            margin-bottom: 15px;
+            font-size: 19px;
+        }
+
+        .activity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .activity-card {
+            background: #17263a;
+            border: 1px solid #33465f;
+            border-radius: 12px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            min-height: 220px;
+        }
+
+        .activity-card h3 {
+            margin: 10px 0;
+            font-size: 17px;
+        }
+
+        .activity-card p {
+            color: #a9b8ca;
+            font-size: 13px;
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+
+        .activity-icon {
+            font-size: 30px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 7px;
+            background: #1687e8;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0872ce;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        .results {
+            margin-top: 35px;
+            background: #17263a;
+            border: 1px solid #33465f;
+            border-radius: 12px;
+            padding: 22px;
+        }
+
+        #message {
+            color: #a9b8ca;
+            line-height: 1.6;
+        }
+
+        .result-details {
+            display: none;
+            margin-top: 20px;
+            padding: 18px;
+            background: #0e1a2a;
+            border-radius: 9px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid #263b55;
+            font-size: 14px;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .normal {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .suspicious {
+            color: #fb7185;
+            font-weight: bold;
+        }
+
+        .score {
+            color: #60a5fa;
+            font-weight: bold;
+        }
+
+        .notice {
+            margin-top: 25px;
+            padding: 15px;
+            border-left: 3px solid #1687e8;
+            background: #142238;
+            color: #a9b8ca;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #8193a9;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>📶 Public_Free_WiFi</h2>
+    <div class="connection">● Simulated connection active</div>
+</header>
+
+<main>
+
+    <section class="welcome">
+        <h1>Network Activity Simulator</h1>
+        <p>
+            You are connected to the simulated public Wi-Fi network.
+            Select an activity below to generate network traffic and
+            observe how the AI security system analyses it.
+        </p>
+    </section>
+
+    <section class="user-card">
+        Connected guest: <span id="guestName">Loading...</span>
+        <br><br>
+        Session status: <span>Connected</span>
+    </section>
+
+    <h2 class="section-title">Choose a Network Activity</h2>
+
+    <section class="activity-grid">
+
+        <div class="activity-card">
+            <div class="activity-icon">🌐</div>
+            <h3>Browse Websites</h3>
+            <p>
+                Simulate ordinary website browsing and normal
+                network communication.
+            </p>
+            <button onclick="generateActivity('browse', this)">
+                Start Browsing
+            </button>
+        </div>
+
+        <div class="activity-card">
+            <div class="activity-icon">📥</div>
+            <h3>Download a File</h3>
+            <p>
+                Simulate a normal file download and data transfer
+                activity.
+            </p>
+            <button onclick="generateActivity('download', this)">
+                Download File
+            </button>
+        </div>
+
+        <div class="activity-card">
+            <div class="activity-icon">🔁</div>
+            <h3>Repeated Requests</h3>
+            <p>
+                Simulate repeated network requests resembling
+                suspicious traffic behaviour.
+            </p>
+            <button onclick="generateActivity('repeated_requests', this)">
+                Generate Requests
+            </button>
+        </div>
+
+        <div class="activity-card">
+            <div class="activity-icon">⚠️</div>
+            <h3>Unusual Connection</h3>
+            <p>
+                Simulate an unusual connection pattern for
+                security monitoring.
+            </p>
+            <button onclick="generateActivity('unusual_connection', this)">
+                Simulate Connection
+            </button>
+        </div>
+
+    </section>
+
+    <section class="results">
+        <h2>AI Security Analysis</h2>
+
+        <p id="message">
+            Select an activity to send simulated traffic
+            to the AI detection engine.
+        </p>
+
+        <div class="result-details" id="resultDetails">
+
+            <div class="result-row">
+                <span>Guest</span>
+                <strong id="resultGuest">-</strong>
+            </div>
+
+            <div class="result-row">
+                <span>Activity</span>
+                <strong id="resultActivity">-</strong>
+            </div>
+
+            <div class="result-row">
+                <span>Benchmark label</span>
+                <strong id="resultBenchmark">-</strong>
+            </div>
+
+            <div class="result-row">
+                <span>AI classification</span>
+                <strong id="resultClassification">-</strong>
+            </div>
+
+            <div class="result-row">
+                <span>Detection score</span>
+                <strong class="score" id="resultScore">-</strong>
+            </div>
+
+            <div class="result-row">
+                <span>Protocol</span>
+                <strong id="resultProtocol">-</strong>
+            </div>
+
+            <div class="result-row">
+                <span>Service</span>
+                <strong id="resultService">-</strong>
+            </div>
+
+            <div class="result-row">
+                <span>Security alert</span>
+                <strong id="resultAlert">-</strong>
+            </div>
+
+        </div>
+    </section>
+
+    <div class="notice">
+        <strong>Prototype simulation:</strong>
+        Network activities use representative NSL-KDD benchmark
+        records. The AI model analyses these records; no actual
+        Wi-Fi traffic is captured from the guest's device.
+    </div>
+
+</main>
+
+<footer>
+    AI-Based Security Monitoring System for Public Wi-Fi Networks
+</footer>
+
+<script>
+const parameters = new URLSearchParams(window.location.search);
+const sessionId = parameters.get("session_id");
+
+const guestName = document.getElementById("guestName");
+const message = document.getElementById("message");
+const resultDetails = document.getElementById("resultDetails");
+
+async function loadSession() {
+    if (!sessionId) {
+        message.textContent = "No Wi-Fi session found. Please connect first.";
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            "/api/wifi/session/" + encodeURIComponent(sessionId)
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || "Session could not be loaded.");
+        }
+
+        guestName.textContent = result.session.username;
+
+    } catch (error) {
+        guestName.textContent = "Not connected";
+        message.textContent = error.message;
+    }
+}
+
+async function generateActivity(activity, button) {
+    if (!sessionId) {
+        message.textContent = "Please connect to Wi-Fi first.";
+        return;
+    }
+
+    const buttons = document.querySelectorAll(".activity-card button");
+
+    buttons.forEach(item => item.disabled = true);
+
+    button.textContent = "Analysing...";
+    message.textContent = "Generating simulated network traffic and analysing it with AI...";
+    resultDetails.style.display = "none";
+
+    try {
+        const response = await fetch("/api/activity/generate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                activity: activity
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || "Activity analysis failed.");
+        }
+
+        const traffic = result.traffic;
+
+        document.getElementById("resultGuest").textContent =
+            traffic.username;
+
+        document.getElementById("resultActivity").textContent =
+            result.activity;
+
+        document.getElementById("resultBenchmark").textContent =
+            result.benchmark_label;
+
+        const classification =
+            document.getElementById("resultClassification");
+
+        classification.textContent = traffic.classification;
+        classification.className =
+            traffic.classification === "Normal" ? "normal" : "suspicious";
+
+        document.getElementById("resultScore").textContent =
+            traffic.detection_score + "%";
+
+        document.getElementById("resultProtocol").textContent =
+            traffic.protocol;
+
+        document.getElementById("resultService").textContent =
+            traffic.service;
+
+        document.getElementById("resultAlert").textContent =
+            result.alert ? result.alert.severity + " alert generated" : "No alert";
+
+        resultDetails.style.display = "block";
+
+        message.textContent =
+            "Analysis complete. The AI model classified this traffic as " +
+            traffic.classification + ".";
+
+        message.style.color =
+            traffic.classification === "Normal" ? "#4ade80" : "#fb7185";
+
+    } catch (error) {
+        message.textContent = error.message;
+        message.style.color = "#fb7185";
+
+    } finally {
+        buttons.forEach(item => item.disabled = false);
+
+        button.textContent = {
+            browse: "Start Browsing",
+            download: "Download File",
+            repeated_requests: "Generate Requests",
+            unusual_connection: "Simulate Connection"
+        }[activity];
+    }
+}
+
+loadSession();
+</script>
+
+</body>
+</html>
