@@ -1,253 +1,653 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AI Network Security Monitor</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Public Wi-Fi Security Monitoring System</title>
 
-    <style>
-        body {
-            margin: 0;
-            padding: 30px;
-            font-family: Arial, sans-serif;
-            background: #0b1220;
-            color: white;
-        }
+<style>
+* {
+    box-sizing: border-box;
+}
 
-        h1 { color: #38bdf8; }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0b1220;
+    color: #e5e7eb;
+}
 
-        .subtitle {
-            color: #94a3b8;
-            margin-bottom: 30px;
-        }
+header {
+    background: #111c30;
+    padding: 22px 30px;
+    border-bottom: 1px solid #26344c;
+}
 
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-        }
+header h1 {
+    margin: 0;
+    font-size: 23px;
+}
 
-        .card {
-            background: #172235;
-            padding: 22px;
-            border-radius: 10px;
-        }
+header p {
+    color: #94a3b8;
+    margin: 8px 0 0;
+    font-size: 13px;
+}
 
-        .number {
-            font-size: 30px;
-            font-weight: bold;
-            margin-top: 12px;
-        }
+.container {
+    max-width: 1450px;
+    margin: auto;
+    padding: 25px;
+}
 
-        .normal { color: #4ade80; }
-        .suspicious { color: #f87171; }
-        .alerts { color: #fbbf24; }
+.section {
+    background: #111c30;
+    border: 1px solid #26344c;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 22px;
+}
 
-        section {
-            background: #172235;
-            padding: 20px;
-            margin-top: 25px;
-            border-radius: 10px;
-            overflow-x: auto;
-        }
+.section h2 {
+    margin-top: 0;
+    font-size: 17px;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
 
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #334155;
-        }
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #94a3b8;
+    font-size: 13px;
+}
 
-        button, select {
-            padding: 10px;
-            margin: 5px;
-            border-radius: 5px;
-        }
+.dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #64748b;
+}
 
-        button {
-            background: #0284c7;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
+.dot.active {
+    background: #22c55e;
+}
 
-        select {
-            background: #0b1220;
-            color: white;
-        }
+button {
+    border: 0;
+    border-radius: 7px;
+    padding: 11px 17px;
+    margin: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
 
-        .status { color: #4ade80; }
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
 
-        @media(max-width: 600px) {
-            body { padding: 15px; }
-        }
-    </style>
+.start {
+    background: #16a34a;
+    color: white;
+}
+
+.pause {
+    background: #d97706;
+    color: white;
+}
+
+.stop {
+    background: #dc2626;
+    color: white;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.stat-card {
+    background: #111c30;
+    border: 1px solid #26344c;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.stat-card p {
+    color: #94a3b8;
+    font-size: 13px;
+    margin: 0 0 12px;
+}
+
+.stat-card h2 {
+    font-size: 28px;
+    margin: 0;
+}
+
+.green {
+    color: #22c55e;
+}
+
+.red {
+    color: #f87171;
+}
+
+.orange {
+    color: #fbbf24;
+}
+
+.progress-track {
+    background: #26344c;
+    height: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 15px;
+}
+
+.progress-fill {
+    background: #3b82f6;
+    width: 0%;
+    height: 100%;
+    transition: width 0.4s;
+}
+
+.progress-text {
+    color: #94a3b8;
+    font-size: 12px;
+    margin-top: 9px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 650px;
+}
+
+th, td {
+    padding: 13px 12px;
+    text-align: left;
+    border-bottom: 1px solid #26344c;
+    font-size: 13px;
+}
+
+th {
+    color: #94a3b8;
+    font-weight: normal;
+}
+
+.badge {
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.normal {
+    background: #14532d;
+    color: #86efac;
+}
+
+.suspicious {
+    background: #7f1d1d;
+    color: #fecaca;
+}
+
+.high {
+    color: #f87171;
+}
+
+.medium {
+    color: #fbbf24;
+}
+
+.low {
+    color: #86efac;
+}
+
+select {
+    background: #0b1220;
+    color: white;
+    border: 1px solid #26344c;
+    padding: 9px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.note {
+    color: #94a3b8;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+footer {
+    text-align: center;
+    color: #64748b;
+    font-size: 12px;
+    padding: 25px;
+}
+
+.message {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 12px;
+}
+
+@media (max-width: 800px) {
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .container {
+        padding: 14px;
+    }
+
+    header {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 430px) {
+    .stats {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .stat-card h2 {
+        font-size: 22px;
+    }
+}
+</style>
 </head>
 
 <body>
 
-    <h1>Network Security Monitoring System</h1>
+<header>
+    <h1>Public Wi-Fi Security Monitoring System</h1>
+    <p>AI-Based Network Traffic Analysis and Threat Detection</p>
+</header>
 
-    <p class="subtitle">
-        AI-Based Security Monitoring for Public Wi-Fi Networks
-    </p>
+<main class="container">
 
-    <p>System status: <span class="status" id="status">Checking...</span></p>
+    <section class="section">
+        <div class="status-row">
+            <div>
+                <h2>Network Monitoring Controls</h2>
+                <div class="status">
+                    <span class="dot" id="statusDot"></span>
+                    <span id="systemStatus">Checking system...</span>
+                </div>
+            </div>
 
-    <div class="cards">
+            <div>
+                <button class="start" id="startBtn" onclick="startReplay()">
+                    Start Monitoring
+                </button>
 
-        <div class="card">
-            Total Records
-            <div class="number" id="total">0</div>
+                <button class="pause" id="pauseBtn" onclick="pauseReplay()">
+                    Pause
+                </button>
+
+                <button class="stop" id="stopBtn" onclick="stopReplay()">
+                    Stop
+                </button>
+            </div>
         </div>
 
-        <div class="card">
-            Normal Traffic
-            <div class="number normal" id="normal">0</div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
         </div>
 
-        <div class="card">
-            Suspicious Traffic
-            <div class="number suspicious" id="suspicious">0</div>
+        <div class="progress-text" id="progressText">
+            0 records processed
         </div>
 
-        <div class="card">
-            Security Alerts
-            <div class="number alerts" id="alerts">0</div>
+        <div class="message" id="message"></div>
+    </section>
+
+    <section class="stats">
+
+        <div class="stat-card">
+            <p>Total Traffic Analysed</p>
+            <h2 id="totalRecords">0</h2>
         </div>
 
-    </div>
+        <div class="stat-card">
+            <p>Normal Traffic</p>
+            <h2 class="green" id="normalRecords">0</h2>
+        </div>
 
-    <section>
-        <h2>Traffic Monitoring</h2>
+        <div class="stat-card">
+            <p>Suspicious Traffic</p>
+            <h2 class="red" id="suspiciousRecords">0</h2>
+        </div>
 
-        <label for="classification">Classification:</label>
+        <div class="stat-card">
+            <p>Security Alerts</p>
+            <h2 class="orange" id="totalAlerts">0</h2>
+        </div>
 
-        <select id="classification" onchange="loadTraffic()">
-            <option value="">All</option>
+    </section>
+
+    <section class="section">
+        <h2>Traffic Monitoring History</h2>
+
+        <select id="classificationFilter" onchange="loadTraffic()">
+            <option value="">All classifications</option>
             <option value="Normal">Normal</option>
             <option value="Suspicious">Suspicious</option>
         </select>
 
-        <label for="protocol">Protocol:</label>
-
-        <select id="protocol" onchange="loadTraffic()">
-            <option value="">All</option>
+        <select id="protocolFilter" onchange="loadTraffic()">
+            <option value="">All protocols</option>
             <option value="tcp">TCP</option>
             <option value="udp">UDP</option>
             <option value="icmp">ICMP</option>
         </select>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Classification</th>
-                    <th>Protocol</th>
-                    <th>Service</th>
-                    <th>Detection Score</th>
-                </tr>
-            </thead>
-
-            <tbody id="trafficTable"></tbody>
-        </table>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time Processed</th>
+                        <th>Classification</th>
+                        <th>Protocol</th>
+                        <th>Service</th>
+                        <th>Detection Score</th>
+                    </tr>
+                </thead>
+                <tbody id="trafficTable">
+                    <tr>
+                        <td colspan="5">Waiting for traffic...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
-    <section>
+    <section class="section">
         <h2>Security Alerts</h2>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Alert ID</th>
-                    <th>Severity</th>
-                    <th>Protocol</th>
-                    <th>Service</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-
-            <tbody id="alertTable"></tbody>
-        </table>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Alert ID</th>
+                        <th>Time</th>
+                        <th>Severity</th>
+                        <th>Protocol</th>
+                        <th>Service</th>
+                        <th>Detection Score</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="alertTable">
+                    <tr>
+                        <td colspan="7">No alerts generated yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
-    <script>
-        async function refreshStats() {
-            try {
-                const response = await fetch("/api/stats");
+    <section class="section">
+        <h2>System Information</h2>
+        <p class="note">
+            Detection engine: Random Forest Classifier<br>
+            Dataset: NSL-KDD benchmark network traffic dataset<br>
+            Detection categories: Normal and Suspicious<br>
+            Processing method: Automated dataset replay<br>
+            Detection scores represent model output probabilities,
+            not calibrated confidence or verified attack severity.
+        </p>
+    </section>
 
-                if (!response.ok) throw new Error("Model unavailable");
+</main>
 
-                const data = await response.json();
+<footer>
+    AI-Based Public Wi-Fi Security Monitoring Prototype
+</footer>
 
-                document.getElementById("total").textContent = data.total_records;
-                document.getElementById("normal").textContent = data.normal;
-                document.getElementById("suspicious").textContent = data.suspicious;
-                document.getElementById("alerts").textContent = data.alerts;
+<script>
+const $ = id => document.getElementById(id);
 
-                document.getElementById("status").textContent = "Connected";
+function safe(value) {
+    const element = document.createElement("span");
+    element.textContent = value ?? "";
+    return element.innerHTML;
+}
 
-            } catch (error) {
-                document.getElementById("status").textContent =
-                    "Waiting for AI model";
-            }
+function formatTime(value) {
+    if (!value) return "-";
+
+    const date = new Date(value);
+
+    return isNaN(date.getTime())
+        ? safe(value)
+        : date.toLocaleTimeString();
+}
+
+async function api(url, options = {}) {
+    const response = await fetch(url, options);
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || "Request failed");
+    }
+
+    return data;
+}
+
+function setMessage(message) {
+    $("message").textContent = message;
+}
+
+async function startReplay() {
+    try {
+        const data = await api("/api/replay/start", {
+            method: "POST"
+        });
+
+        setMessage("Monitoring started or resumed.");
+        updateReplayStatus(data);
+        refreshDashboard();
+    } catch (error) {
+        setMessage("Could not start monitoring: " + error.message);
+    }
+}
+
+async function pauseReplay() {
+    try {
+        const data = await api("/api/replay/pause", {
+            method: "POST"
+        });
+
+        updateReplayStatus(data);
+        setMessage("Monitoring paused.");
+    } catch (error) {
+        setMessage("Could not pause monitoring: " + error.message);
+    }
+}
+
+async function stopReplay() {
+    try {
+        const data = await api("/api/replay/stop", {
+            method: "POST"
+        });
+
+        updateReplayStatus(data);
+        setMessage("Monitoring stopped.");
+    } catch (error) {
+        setMessage("Could not stop monitoring: " + error.message);
+    }
+}
+
+function updateReplayStatus(data) {
+    let label = "Stopped";
+
+    if (data.running && data.paused) {
+        label = "Paused";
+    } else if (data.running) {
+        label = "Monitoring";
+    }
+
+    $("systemStatus").textContent = label;
+
+    $("statusDot").classList.toggle(
+        "active",
+        data.running && !data.paused
+    );
+
+    $("progressFill").style.width =
+        (data.progress || 0) + "%";
+
+    $("progressText").textContent =
+        `${data.processed || 0} of ${data.total || 0} records processed (${data.progress || 0}%)`;
+
+    $("startBtn").disabled =
+        data.running && !data.paused;
+
+    $("pauseBtn").disabled =
+        !data.running || data.paused;
+
+    $("stopBtn").disabled =
+        !data.running;
+}
+
+async function loadStats() {
+    const data = await api("/api/stats");
+
+    $("totalRecords").textContent =
+        data.total_records ?? 0;
+
+    $("normalRecords").textContent =
+        data.normal ?? 0;
+
+    $("suspiciousRecords").textContent =
+        data.suspicious ?? 0;
+
+    $("totalAlerts").textContent =
+        data.alerts ?? 0;
+}
+
+async function loadTraffic() {
+    const classification = $("classificationFilter").value;
+    const protocol = $("protocolFilter").value;
+
+    const params = new URLSearchParams();
+
+    if (classification) {
+        params.set("classification", classification);
+    }
+
+    if (protocol) {
+        params.set("protocol", protocol);
+    }
+
+    const records = await api("/api/traffic?" + params.toString());
+
+    const table = $("trafficTable");
+
+    if (!records.length) {
+        table.innerHTML =
+            '<tr><td colspan="5">No traffic records available.</td></tr>';
+        return;
+    }
+
+    table.innerHTML = records.slice().reverse().map(record => {
+        const badge = record.classification === "Suspicious"
+            ? "suspicious"
+            : "normal";
+
+        return `
+            <tr>
+                <td>${formatTime(record.processed_at)}</td>
+                <td><span class="badge ${badge}">${safe(record.classification)}</span></td>
+                <td>${safe(record.protocol)}</td>
+                <td>${safe(record.service)}</td>
+                <td>${safe(record.detection_score)}%</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function loadAlerts() {
+    const records = await api("/api/alerts");
+
+    const table = $("alertTable");
+
+    if (!records.length) {
+        table.innerHTML =
+            '<tr><td colspan="7">No alerts generated yet.</td></tr>';
+        return;
+    }
+
+    table.innerHTML = records.slice().reverse().map(alert => `
+        <tr>
+            <td>${safe(alert.alert_id)}</td>
+            <td>${formatTime(alert.timestamp)}</td>
+            <td class="${safe(alert.severity.toLowerCase())}">
+                ${safe(alert.severity)}
+            </td>
+            <td>${safe(alert.protocol)}</td>
+            <td>${safe(alert.service)}</td>
+            <td>${safe(alert.detection_score)}%</td>
+            <td>${safe(alert.status)}</td>
+        </tr>
+    `).join("");
+}
+
+async function refreshDashboard() {
+    try {
+        const status = await api("/api/replay/status");
+
+        updateReplayStatus(status);
+
+        await Promise.all([
+            loadStats(),
+            loadTraffic(),
+            loadAlerts()
+        ]);
+
+    } catch (error) {
+        $("systemStatus").textContent = "Connection error";
+        setMessage(error.message);
+    }
+}
+
+async function checkHealth() {
+    try {
+        const health = await api("/api/health");
+
+        if (health.model_loaded) {
+            setMessage("AI detection engine connected successfully.");
+        } else {
+            setMessage("AI model is not loaded.");
         }
+    } catch (error) {
+        setMessage("System connection unavailable.");
+    }
+}
 
-        async function loadTraffic() {
-            const classification = document.getElementById("classification").value;
-            const protocol = document.getElementById("protocol").value;
+checkHealth();
+refreshDashboard();
 
-            const params = new URLSearchParams();
-
-            if (classification) params.set("classification", classification);
-            if (protocol) params.set("protocol", protocol);
-
-            const response = await fetch("/api/traffic?" + params);
-            if (!response.ok) return;
-
-            const records = await response.json();
-
-            document.getElementById("trafficTable").innerHTML =
-                records.map(record => `
-                    <tr>
-                        <td>${record.classification}</td>
-                        <td>${record.protocol}</td>
-                        <td>${record.service}</td>
-                        <td>${record.detection_score}%</td>
-                    </tr>
-                `).join("");
-        }
-
-        async function loadAlerts() {
-            const response = await fetch("/api/alerts");
-            if (!response.ok) return;
-
-            const alerts = await response.json();
-
-            document.getElementById("alertTable").innerHTML =
-                alerts.map(alert => `
-                    <tr>
-                        <td>${alert.alert_id}</td>
-                        <td>${alert.severity}</td>
-                        <td>${alert.protocol}</td>
-                        <td>${alert.service}</td>
-                        <td>${alert.status}</td>
-                    </tr>
-                `).join("");
-        }
-
-        async function updateDashboard() {
-            await refreshStats();
-            await loadTraffic();
-            await loadAlerts();
-        }
-
-        updateDashboard();
-        setInterval(updateDashboard, 3000);
-    </script>
+setInterval(refreshDashboard, 2500);
+</script>
 
 </body>
 </html>
