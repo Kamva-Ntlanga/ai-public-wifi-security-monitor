@@ -9,42 +9,51 @@ from config import Config
 from detection.engine import NetworkDetectionEngine
 from monitoring.service import NetworkSecuritySystem
 from monitoring.replay import TrafficReplay
-from data.loader import load_dataset
+from network_lab.simulator import NetworkLabSimulator
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 security_system = None
 replay_engine = None
-simulation_dataset = None
+network_lab_simulator = None
 model_loaded = False
 
 wifi_sessions = {}
 
+
 ACTIVITY_TYPES = {
     "browse": {
         "name": "Browsing websites",
-        "label": 0
+        "scenario": "normal_browsing"
     },
     "download": {
         "name": "Downloading a file",
-        "label": 0
+        "scenario": "normal_download"
     },
     "repeated_requests": {
         "name": "Repeated network requests",
-        "label": 1
+        "scenario": "repeated_requests"
     },
     "unusual_connection": {
         "name": "Unusual connection pattern",
-        "label": 1
+        "scenario": "port_scan"
     }
 }
+
+
+# INITIALISE THE AI MODEL AND NETWORK SIMULATOR
 
 try:
     engine = NetworkDetectionEngine(Config.MODEL_PATH)
     engine.load_model()
 
     security_system = NetworkSecuritySystem(engine)
+
+    network_lab_simulator = NetworkLabSimulator(
+        dataset_path="data/KDDTrain+.txt"
+    )
 
     replay_engine = TrafficReplay(
         security_system,
@@ -53,14 +62,15 @@ try:
     )
 
     model_loaded = True
-    print("AI model loaded successfully.")
 
-except FileNotFoundError:
-    print("AI model or dataset not available.")
+    print("AI model loaded successfully.")
+    print("Network laboratory simulator loaded successfully.")
 
 except Exception as error:
     print("Application initialisation error:", error)
 
+
+# MAIN APPLICATION PAGES
 
 @app.route("/")
 def home():
@@ -77,18 +87,27 @@ def activity_page():
     return render_template("activity.html")
 
 
+# SYSTEM HEALTH
+
 @app.route("/api/health")
 def health():
     return jsonify({
         "application": "running",
         "model_loaded": model_loaded,
-        "replay_available": replay_engine is not None
+        "replay_available": replay_engine is not None,
+        "network_simulator_available": (
+            network_lab_simulator is not None
+        )
     })
 
 
+# SIMULATED WI-FI CONNECTION
+
 @app.route("/api/wifi/connect", methods=["POST"])
 def wifi_connect():
+
     data = request.get_json(silent=True) or {}
+
     username = str(data.get("username", "")).strip()
 
     if not username:
@@ -122,6 +141,7 @@ def wifi_connect():
 
 @app.route("/api/wifi/session/<session_id>")
 def wifi_session(session_id):
+
     session = wifi_sessions.get(session_id)
 
     if session is None:
@@ -136,12 +156,22 @@ def wifi_session(session_id):
     })
 
 
+# GENERATE SIMULATED NETWORK ACTIVITY AND RUN AI ANALYSIS
+
 @app.route("/api/activity/generate", methods=["POST"])
 def generate_activity():
-    global simulation_dataset
 
     if security_system is None:
-        return jsonify({"error": "AI model not loaded"}), 503
+        return jsonify({
+            "success": False,
+            "error": "AI model not loaded."
+        }), 503
+
+    if network_lab_simulator is None:
+        return jsonify({
+            "success": False,
+            "error": "Network simulator unavailable."
+        }), 503
 
     data = request.get_json(silent=True) or {}
 
@@ -163,81 +193,144 @@ def generate_activity():
         }), 400
 
     try:
-        if simulation_dataset is None:
-            simulation_dataset = load_dataset("data/KDDTrain+.txt")
 
         activity = ACTIVITY_TYPES[activity_type]
-        expected_label = activity["label"]
+        scenario = activity["scenario"]
 
-        matching_records = simulation_dataset[
-            simulation_dataset["actual_label"] == expected_label
-        ]
+        # STEP 1: GENERATE SIMULATED PACKET EVENTS
 
-        if matching_records.empty:
-            return jsonify({
-                "success": False,
-                "error": "No suitable benchmark traffic records found."
-            }), 500
+        packet_events = network_lab_simulator.generate_packets(
+            scenario=scenario,
+            username=session["username"],
+            session_id=session_id
+        )
 
-        sample = matching_records.sample(n=1).iloc[0]
+        analysis_id = str(uuid.uuid4())
 
-        traffic_record = {
-            feature: sample[feature]
-            for feature in NetworkDetectionEngine.feature_names
-        }
+        for packet in packet_events:
+            packet["analysis_id"] = analysis_id
 
-        result = security_system.analyse_traffic(traffic_record)
+        # STEP 2: SELECT A REPRESENTATIVE NSL-KDD RECORD
+
+        traffic_record = network_lab_simulator.extract_features(
+            scenario
+        )
+
+        benchmark_record = (
+            network_lab_simulator.flow_history[-1]["benchmark_label"]
+        )
+
+        benchmark_class = (
+            "Normal" if benchmark_record == "normal"
+            else "Attack"
+        )
+
+        # STEP 3: ANALYSE THE RECORD USING THE TRAINED AI MODEL
+
+        result = security_system.analyse_traffic(
+            traffic_record
+        )
 
         traffic_result = result["traffic"]
 
+        # STEP 4: ATTACH SESSION AND SIMULATION INFORMATION
+
         metadata = {
+            "analysis_id": analysis_id,
             "username": session["username"],
             "session_id": session_id,
             "activity": activity["name"],
-            "benchmark_label": (
-                "Attack" if expected_label == 1 else "Normal"
-            )
+            "scenario": scenario,
+            "benchmark_label": benchmark_class,
+            "benchmark_record": benchmark_record,
+            "packet_count": len(packet_events),
+            "capture_type": "SIMULATED"
         }
 
         traffic_result.update(metadata)
+
+        # UPDATE MONITORING HISTORY
 
         if security_system.history.records:
             security_system.history.records[-1].update(metadata)
 
         if security_system.processor.processed_records:
-            security_system.processor.processed_records[-1].update(metadata)
+            security_system.processor.processed_records[-1].update(
+                metadata
+            )
+
+        # UPDATE SECURITY ALERT IF GENERATED
 
         if result["alert"]:
             result["alert"].update(metadata)
 
+        # STEP 5: RETURN THE COMPLETE ACTIVITY RESULT
+
         return jsonify({
             "success": True,
+            "analysis_id": analysis_id,
             "activity": activity["name"],
-            "benchmark_label": metadata["benchmark_label"],
+            "scenario": scenario,
+            "benchmark_label": benchmark_class,
+            "benchmark_record": benchmark_record,
+            "packet_count": len(packet_events),
+            "capture_type": "SIMULATED",
+            "packet_events": packet_events,
             "traffic": traffic_result,
             "alert": result["alert"],
-            "message": "Simulated activity analysed by the AI model."
+            "message": (
+                "Simulated network activity generated and "
+                "analysed by the AI model."
+            )
         })
 
     except Exception as error:
+
         return jsonify({
             "success": False,
             "error": str(error)
         }), 500
 
 
+# SIMULATED PACKET EVENT HISTORY
+
+@app.route("/api/packets")
+def packets():
+
+    if network_lab_simulator is None:
+        return jsonify({
+            "error": "Network simulator unavailable."
+        }), 503
+
+    return jsonify(
+        network_lab_simulator.get_packet_history()[-100:]
+    )
+
+
+# MONITORING STATISTICS
+
 @app.route("/api/stats")
 def stats():
+
     if security_system is None:
-        return jsonify({"error": "AI model not loaded"}), 503
+        return jsonify({
+            "error": "AI model not loaded"
+        }), 503
 
-    return jsonify(security_system.get_monitoring_data())
+    return jsonify(
+        security_system.get_monitoring_data()
+    )
 
+
+# TRAFFIC HISTORY
 
 @app.route("/api/traffic")
 def traffic():
+
     if security_system is None:
-        return jsonify({"error": "AI model not loaded"}), 503
+        return jsonify({
+            "error": "AI model not loaded"
+        }), 503
 
     classification = request.args.get("classification")
     protocol = request.args.get("protocol")
@@ -246,31 +339,43 @@ def traffic():
 
     if classification:
         records = [
-            r for r in records
-            if r["classification"] == classification
+            record for record in records
+            if record["classification"] == classification
         ]
 
     if protocol:
         records = [
-            r for r in records
-            if r["protocol"] == protocol
+            record for record in records
+            if record["protocol"] == protocol
         ]
 
     return jsonify(records[-100:])
 
 
+# SECURITY ALERTS
+
 @app.route("/api/alerts")
 def alerts():
+
     if security_system is None:
-        return jsonify({"error": "AI model not loaded"}), 503
+        return jsonify({
+            "error": "AI model not loaded"
+        }), 503
 
-    return jsonify(security_system.get_alerts())
+    return jsonify(
+        security_system.get_alerts()
+    )
 
+
+# MANUAL AI TRAFFIC ANALYSIS
 
 @app.route("/api/analyse", methods=["POST"])
 def analyse():
+
     if security_system is None:
-        return jsonify({"error": "AI model not loaded"}), 503
+        return jsonify({
+            "error": "AI model not loaded"
+        }), 503
 
     traffic_record = request.get_json(silent=True)
 
@@ -293,49 +398,88 @@ def analyse():
         }), 400
 
     try:
-        result = security_system.analyse_traffic(traffic_record)
+
+        result = security_system.analyse_traffic(
+            traffic_record
+        )
+
         return jsonify(result)
 
     except Exception as error:
-        return jsonify({"error": str(error)}), 400
 
+        return jsonify({
+            "error": str(error)
+        }), 400
+
+
+# DATASET REPLAY CONTROLS
 
 @app.route("/api/replay/start", methods=["POST"])
 def start_replay():
+
     if replay_engine is None:
-        return jsonify({"error": "Replay engine unavailable"}), 503
+        return jsonify({
+            "error": "Replay engine unavailable"
+        }), 503
 
     try:
-        return jsonify(replay_engine.start())
+        return jsonify(
+            replay_engine.start()
+        )
 
     except Exception as error:
-        return jsonify({"error": str(error)}), 500
+        return jsonify({
+            "error": str(error)
+        }), 500
 
 
 @app.route("/api/replay/pause", methods=["POST"])
 def pause_replay():
-    if replay_engine is None:
-        return jsonify({"error": "Replay engine unavailable"}), 503
 
-    return jsonify(replay_engine.pause())
+    if replay_engine is None:
+        return jsonify({
+            "error": "Replay engine unavailable"
+        }), 503
+
+    return jsonify(
+        replay_engine.pause()
+    )
 
 
 @app.route("/api/replay/stop", methods=["POST"])
 def stop_replay():
-    if replay_engine is None:
-        return jsonify({"error": "Replay engine unavailable"}), 503
 
-    return jsonify(replay_engine.stop())
+    if replay_engine is None:
+        return jsonify({
+            "error": "Replay engine unavailable"
+        }), 503
+
+    return jsonify(
+        replay_engine.stop()
+    )
 
 
 @app.route("/api/replay/status")
 def replay_status():
+
     if replay_engine is None:
-        return jsonify({"error": "Replay engine unavailable"}), 503
+        return jsonify({
+            "error": "Replay engine unavailable"
+        }), 503
 
-    return jsonify(replay_engine.get_status())
+    return jsonify(
+        replay_engine.get_status()
+    )
 
+
+# START APPLICATION
 
 if __name__ == "__main__":
+
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=False
+    )

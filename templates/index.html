@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,9 +6,7 @@
 <title>Public Wi-Fi Security Monitoring System</title>
 
 <style>
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
@@ -24,10 +21,7 @@ header {
     border-bottom: 1px solid #26344c;
 }
 
-header h1 {
-    margin: 0;
-    font-size: 23px;
-}
+header h1 { margin: 0; font-size: 23px; }
 
 header p {
     color: #94a3b8;
@@ -36,7 +30,7 @@ header p {
 }
 
 .container {
-    max-width: 1450px;
+    max-width: 1550px;
     margin: auto;
     padding: 25px;
 }
@@ -77,9 +71,7 @@ header p {
     background: #64748b;
 }
 
-.dot.active {
-    background: #22c55e;
-}
+.dot.active { background: #22c55e; }
 
 button {
     border: 0;
@@ -95,24 +87,13 @@ button:disabled {
     cursor: not-allowed;
 }
 
-.start {
-    background: #16a34a;
-    color: white;
-}
-
-.pause {
-    background: #d97706;
-    color: white;
-}
-
-.stop {
-    background: #dc2626;
-    color: white;
-}
+.start { background: #16a34a; color: white; }
+.pause { background: #d97706; color: white; }
+.stop { background: #dc2626; color: white; }
 
 .stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 16px;
     margin-bottom: 22px;
 }
@@ -122,6 +103,7 @@ button:disabled {
     border: 1px solid #26344c;
     border-radius: 12px;
     padding: 20px;
+    min-width: 0;
 }
 
 .stat-card p {
@@ -135,17 +117,10 @@ button:disabled {
     margin: 0;
 }
 
-.green {
-    color: #22c55e;
-}
-
-.red {
-    color: #f87171;
-}
-
-.orange {
-    color: #fbbf24;
-}
+.green { color: #22c55e; }
+.red { color: #f87171; }
+.orange { color: #fbbf24; }
+.blue { color: #60a5fa; }
 
 .progress-track {
     background: #26344c;
@@ -168,21 +143,20 @@ button:disabled {
     margin-top: 9px;
 }
 
-.table-wrap {
-    overflow-x: auto;
-}
+.table-wrap { overflow-x: auto; }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 650px;
+    min-width: 750px;
 }
 
 th, td {
     padding: 13px 12px;
     text-align: left;
     border-bottom: 1px solid #26344c;
-    font-size: 13px;
+    font-size: 12px;
+    white-space: nowrap;
 }
 
 th {
@@ -207,17 +181,14 @@ th {
     color: #fecaca;
 }
 
-.high {
-    color: #f87171;
+.simulated {
+    background: #1e3a5f;
+    color: #93c5fd;
 }
 
-.medium {
-    color: #fbbf24;
-}
-
-.low {
-    color: #86efac;
-}
+.high { color: #f87171; }
+.medium { color: #fbbf24; }
+.low { color: #86efac; }
 
 select {
     background: #0b1220;
@@ -225,13 +196,25 @@ select {
     border: 1px solid #26344c;
     padding: 9px;
     border-radius: 6px;
-    margin-bottom: 12px;
+    margin: 0 8px 12px 0;
 }
 
 .note {
     color: #94a3b8;
     font-size: 12px;
-    line-height: 1.6;
+    line-height: 1.7;
+}
+
+.message {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 12px;
+}
+
+.table-caption {
+    color: #94a3b8;
+    font-size: 12px;
+    margin: -5px 0 15px;
 }
 
 footer {
@@ -241,34 +224,19 @@ footer {
     padding: 25px;
 }
 
-.message {
-    color: #94a3b8;
-    font-size: 13px;
-    margin-top: 12px;
+@media (max-width: 1000px) {
+    .stats { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 800px) {
-    .stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .container {
-        padding: 14px;
-    }
-
-    header {
-        padding: 20px;
-    }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .container { padding: 14px; }
+    header { padding: 20px; }
 }
 
 @media (max-width: 430px) {
-    .stats {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .stat-card h2 {
-        font-size: 22px;
-    }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat-card h2 { font-size: 22px; }
 }
 </style>
 </head>
@@ -340,6 +308,48 @@ footer {
             <h2 class="orange" id="totalAlerts">0</h2>
         </div>
 
+        <div class="stat-card">
+            <p>Simulated Packet Events</p>
+            <h2 class="blue" id="totalPackets">0</h2>
+        </div>
+
+    </section>
+
+    <section class="section">
+        <div class="status-row">
+            <h2>Simulated Packet Event Monitor</h2>
+            <span class="badge simulated">SIMULATED CAPTURE</span>
+        </div>
+
+        <p class="table-caption">
+            Displays generated network event records associated with guest sessions
+            and activity scenarios. These are not genuine captured network packets.
+        </p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Guest</th>
+                        <th>Session ID</th>
+                        <th>Source IP</th>
+                        <th>Destination IP</th>
+                        <th>Source Port</th>
+                        <th>Destination Port</th>
+                        <th>Packet Size</th>
+                        <th>Scenario</th>
+                        <th>Capture Type</th>
+                    </tr>
+                </thead>
+
+                <tbody id="packetTable">
+                    <tr>
+                        <td colspan="10">Waiting for simulated packet events...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <section class="section">
@@ -363,15 +373,19 @@ footer {
                 <thead>
                     <tr>
                         <th>Time Processed</th>
+                        <th>Guest</th>
+                        <th>Activity</th>
+                        <th>Benchmark Record</th>
                         <th>Classification</th>
                         <th>Protocol</th>
                         <th>Service</th>
                         <th>Detection Score</th>
                     </tr>
                 </thead>
+
                 <tbody id="trafficTable">
                     <tr>
-                        <td colspan="5">Waiting for traffic...</td>
+                        <td colspan="8">Waiting for traffic...</td>
                     </tr>
                 </tbody>
             </table>
@@ -387,16 +401,18 @@ footer {
                     <tr>
                         <th>Alert ID</th>
                         <th>Time</th>
+                        <th>Guest</th>
+                        <th>Scenario</th>
                         <th>Severity</th>
-                        <th>Protocol</th>
-                        <th>Service</th>
+                        <th>Classification</th>
                         <th>Detection Score</th>
                         <th>Status</th>
                     </tr>
                 </thead>
+
                 <tbody id="alertTable">
                     <tr>
-                        <td colspan="7">No alerts generated yet.</td>
+                        <td colspan="8">No alerts generated yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -405,11 +421,14 @@ footer {
 
     <section class="section">
         <h2>System Information</h2>
+
         <p class="note">
             Detection engine: Random Forest Classifier<br>
             Dataset: NSL-KDD benchmark network traffic dataset<br>
             Detection categories: Normal and Suspicious<br>
-            Processing method: Automated dataset replay<br>
+            Processing method: AI classification of benchmark traffic records<br>
+            Packet event source: Python-based network activity simulator<br>
+            Guest connections: Simulated public Wi-Fi sessions<br>
             Detection scores represent model output probabilities,
             not calibrated confidence or verified attack severity.
         </p>
@@ -422,6 +441,7 @@ footer {
 </footer>
 
 <script>
+
 const $ = id => document.getElementById(id);
 
 function safe(value) {
@@ -442,7 +462,6 @@ function formatTime(value) {
 
 async function api(url, options = {}) {
     const response = await fetch(url, options);
-
     const data = await response.json();
 
     if (!response.ok) {
@@ -465,6 +484,7 @@ async function startReplay() {
         setMessage("Monitoring started or resumed.");
         updateReplayStatus(data);
         refreshDashboard();
+
     } catch (error) {
         setMessage("Could not start monitoring: " + error.message);
     }
@@ -478,6 +498,7 @@ async function pauseReplay() {
 
         updateReplayStatus(data);
         setMessage("Monitoring paused.");
+
     } catch (error) {
         setMessage("Could not pause monitoring: " + error.message);
     }
@@ -491,6 +512,7 @@ async function stopReplay() {
 
         updateReplayStatus(data);
         setMessage("Monitoring stopped.");
+
     } catch (error) {
         setMessage("Could not stop monitoring: " + error.message);
     }
@@ -544,6 +566,35 @@ async function loadStats() {
         data.alerts ?? 0;
 }
 
+async function loadPackets() {
+    const records = await api("/api/packets");
+
+    const table = $("packetTable");
+
+    $("totalPackets").textContent = records.length;
+
+    if (!records.length) {
+        table.innerHTML =
+            '<tr><td colspan="10">No simulated packet events available. Connect a guest and generate an activity first.</td></tr>';
+        return;
+    }
+
+    table.innerHTML = records.slice().reverse().map(packet => `
+        <tr>
+            <td>${formatTime(packet.timestamp)}</td>
+            <td>${safe(packet.username)}</td>
+            <td>${safe(packet.session_id)}</td>
+            <td>${safe(packet.source_ip)}</td>
+            <td>${safe(packet.destination_ip)}</td>
+            <td>${safe(packet.source_port)}</td>
+            <td>${safe(packet.destination_port)}</td>
+            <td>${safe(packet.packet_size)} bytes</td>
+            <td>${safe(packet.scenario_name || packet.scenario)}</td>
+            <td><span class="badge simulated">${safe(packet.capture_type)}</span></td>
+        </tr>
+    `).join("");
+}
+
 async function loadTraffic() {
     const classification = $("classificationFilter").value;
     const protocol = $("protocolFilter").value;
@@ -564,7 +615,7 @@ async function loadTraffic() {
 
     if (!records.length) {
         table.innerHTML =
-            '<tr><td colspan="5">No traffic records available.</td></tr>';
+            '<tr><td colspan="8">No traffic records available.</td></tr>';
         return;
     }
 
@@ -576,7 +627,14 @@ async function loadTraffic() {
         return `
             <tr>
                 <td>${formatTime(record.processed_at)}</td>
-                <td><span class="badge ${badge}">${safe(record.classification)}</span></td>
+                <td>${safe(record.username)}</td>
+                <td>${safe(record.activity || record.scenario)}</td>
+                <td>${safe(record.benchmark_record || record.benchmark_label)}</td>
+                <td>
+                    <span class="badge ${badge}">
+                        ${safe(record.classification)}
+                    </span>
+                </td>
                 <td>${safe(record.protocol)}</td>
                 <td>${safe(record.service)}</td>
                 <td>${safe(record.detection_score)}%</td>
@@ -592,23 +650,39 @@ async function loadAlerts() {
 
     if (!records.length) {
         table.innerHTML =
-            '<tr><td colspan="7">No alerts generated yet.</td></tr>';
+            '<tr><td colspan="8">No alerts generated yet.</td></tr>';
         return;
     }
 
-    table.innerHTML = records.slice().reverse().map(alert => `
-        <tr>
-            <td>${safe(alert.alert_id)}</td>
-            <td>${formatTime(alert.timestamp)}</td>
-            <td class="${safe(alert.severity.toLowerCase())}">
-                ${safe(alert.severity)}
-            </td>
-            <td>${safe(alert.protocol)}</td>
-            <td>${safe(alert.service)}</td>
-            <td>${safe(alert.detection_score)}%</td>
-            <td>${safe(alert.status)}</td>
-        </tr>
-    `).join("");
+    table.innerHTML = records.slice().reverse().map(alert => {
+        const severityClass = safe(
+            String(alert.severity || "").toLowerCase()
+        );
+
+        const classificationClass =
+            alert.classification === "Suspicious"
+                ? "suspicious"
+                : "normal";
+
+        return `
+            <tr>
+                <td>${safe(alert.alert_id)}</td>
+                <td>${formatTime(alert.timestamp)}</td>
+                <td>${safe(alert.username)}</td>
+                <td>${safe(alert.activity || alert.scenario)}</td>
+                <td class="${severityClass}">
+                    ${safe(alert.severity)}
+                </td>
+                <td>
+                    <span class="badge ${classificationClass}">
+                        ${safe(alert.classification)}
+                    </span>
+                </td>
+                <td>${safe(alert.detection_score)}%</td>
+                <td>${safe(alert.status)}</td>
+            </tr>
+        `;
+    }).join("");
 }
 
 async function refreshDashboard() {
@@ -619,6 +693,7 @@ async function refreshDashboard() {
 
         await Promise.all([
             loadStats(),
+            loadPackets(),
             loadTraffic(),
             loadAlerts()
         ]);
@@ -638,6 +713,7 @@ async function checkHealth() {
         } else {
             setMessage("AI model is not loaded.");
         }
+
     } catch (error) {
         setMessage("System connection unavailable.");
     }
@@ -647,6 +723,7 @@ checkHealth();
 refreshDashboard();
 
 setInterval(refreshDashboard, 2500);
+
 </script>
 
 </body>
