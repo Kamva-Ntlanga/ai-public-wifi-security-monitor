@@ -1,5 +1,8 @@
 
 import os
+import uuid
+from datetime import datetime
+
 from flask import Flask, jsonify, request, render_template
 
 from config import Config
@@ -13,6 +16,9 @@ app.config.from_object(Config)
 security_system = None
 replay_engine = None
 model_loaded = False
+
+# Stores simulated Wi-Fi sessions while the application is running.
+wifi_sessions = {}
 
 try:
     engine = NetworkDetectionEngine(Config.MODEL_PATH)
@@ -36,19 +42,21 @@ except Exception as error:
     print("Application initialisation error:", error)
 
 
-# MAIN SECURITY DASHBOARD
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# PUBLIC WI-FI CONNECTION PORTAL
 @app.route("/wifi")
 def wifi_portal():
     return render_template("wifi_portal.html")
 
 
-# SYSTEM HEALTH
+@app.route("/activity")
+def activity_page():
+    return render_template("activity.html")
+
+
 @app.route("/api/health")
 def health():
     return jsonify({
@@ -58,7 +66,59 @@ def health():
     })
 
 
-# MONITORING STATISTICS
+# Register a user in the simulated Wi-Fi environment.
+@app.route("/api/wifi/connect", methods=["POST"])
+def wifi_connect():
+    data = request.get_json(silent=True) or {}
+
+    username = str(data.get("username", "")).strip()
+
+    if not username:
+        return jsonify({
+            "success": False,
+            "error": "Please enter a username or guest name."
+        }), 400
+
+    if len(username) > 60:
+        return jsonify({
+            "success": False,
+            "error": "Username must not exceed 60 characters."
+        }), 400
+
+    session_id = str(uuid.uuid4())
+
+    wifi_sessions[session_id] = {
+        "session_id": session_id,
+        "username": username,
+        "connected_at": datetime.now().isoformat(),
+        "status": "Connected"
+    }
+
+    return jsonify({
+        "success": True,
+        "message": "Simulated Wi-Fi connection successful.",
+        "session": wifi_sessions[session_id],
+        "next_page": "/activity?session_id=" + session_id
+    }), 200
+
+
+# Retrieve a simulated Wi-Fi session.
+@app.route("/api/wifi/session/<session_id>")
+def wifi_session(session_id):
+    session = wifi_sessions.get(session_id)
+
+    if session is None:
+        return jsonify({
+            "success": False,
+            "error": "Wi-Fi session not found."
+        }), 404
+
+    return jsonify({
+        "success": True,
+        "session": session
+    })
+
+
 @app.route("/api/stats")
 def stats():
     if security_system is None:
@@ -67,7 +127,6 @@ def stats():
     return jsonify(security_system.get_monitoring_data())
 
 
-# TRAFFIC HISTORY
 @app.route("/api/traffic")
 def traffic():
     if security_system is None:
@@ -93,7 +152,6 @@ def traffic():
     return jsonify(records[-100:])
 
 
-# SECURITY ALERTS
 @app.route("/api/alerts")
 def alerts():
     if security_system is None:
@@ -102,7 +160,6 @@ def alerts():
     return jsonify(security_system.get_alerts())
 
 
-# MANUAL TRAFFIC ANALYSIS
 @app.route("/api/analyse", methods=["POST"])
 def analyse():
     if security_system is None:
@@ -136,7 +193,6 @@ def analyse():
         return jsonify({"error": str(error)}), 400
 
 
-# START TRAFFIC REPLAY
 @app.route("/api/replay/start", methods=["POST"])
 def start_replay():
     if replay_engine is None:
@@ -144,11 +200,11 @@ def start_replay():
 
     try:
         return jsonify(replay_engine.start())
+
     except Exception as error:
         return jsonify({"error": str(error)}), 500
 
 
-# PAUSE TRAFFIC REPLAY
 @app.route("/api/replay/pause", methods=["POST"])
 def pause_replay():
     if replay_engine is None:
@@ -157,7 +213,6 @@ def pause_replay():
     return jsonify(replay_engine.pause())
 
 
-# STOP TRAFFIC REPLAY
 @app.route("/api/replay/stop", methods=["POST"])
 def stop_replay():
     if replay_engine is None:
@@ -166,7 +221,6 @@ def stop_replay():
     return jsonify(replay_engine.stop())
 
 
-# REPLAY STATUS
 @app.route("/api/replay/status")
 def replay_status():
     if replay_engine is None:
