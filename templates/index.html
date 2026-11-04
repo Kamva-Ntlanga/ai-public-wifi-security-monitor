@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Network Security Monitor</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+            background: #0b1220;
+            color: white;
+        }
+
+        h1 { color: #38bdf8; }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .card {
+            background: #172235;
+            padding: 22px;
+            border-radius: 10px;
+        }
+
+        .number {
+            font-size: 30px;
+            font-weight: bold;
+            margin-top: 12px;
+        }
+
+        .normal { color: #4ade80; }
+        .suspicious { color: #f87171; }
+        .alerts { color: #fbbf24; }
+
+        section {
+            background: #172235;
+            padding: 20px;
+            margin-top: 25px;
+            border-radius: 10px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+
+        button, select {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+
+        button {
+            background: #0284c7;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        select {
+            background: #0b1220;
+            color: white;
+        }
+
+        .status { color: #4ade80; }
+
+        @media(max-width: 600px) {
+            body { padding: 15px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Network Security Monitoring System</h1>
+
+    <p class="subtitle">
+        AI-Based Security Monitoring for Public Wi-Fi Networks
+    </p>
+
+    <p>System status: <span class="status" id="status">Checking...</span></p>
+
+    <div class="cards">
+
+        <div class="card">
+            Total Records
+            <div class="number" id="total">0</div>
+        </div>
+
+        <div class="card">
+            Normal Traffic
+            <div class="number normal" id="normal">0</div>
+        </div>
+
+        <div class="card">
+            Suspicious Traffic
+            <div class="number suspicious" id="suspicious">0</div>
+        </div>
+
+        <div class="card">
+            Security Alerts
+            <div class="number alerts" id="alerts">0</div>
+        </div>
+
+    </div>
+
+    <section>
+        <h2>Traffic Monitoring</h2>
+
+        <label for="classification">Classification:</label>
+
+        <select id="classification" onchange="loadTraffic()">
+            <option value="">All</option>
+            <option value="Normal">Normal</option>
+            <option value="Suspicious">Suspicious</option>
+        </select>
+
+        <label for="protocol">Protocol:</label>
+
+        <select id="protocol" onchange="loadTraffic()">
+            <option value="">All</option>
+            <option value="tcp">TCP</option>
+            <option value="udp">UDP</option>
+            <option value="icmp">ICMP</option>
+        </select>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Classification</th>
+                    <th>Protocol</th>
+                    <th>Service</th>
+                    <th>Detection Score</th>
+                </tr>
+            </thead>
+
+            <tbody id="trafficTable"></tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Security Alerts</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Alert ID</th>
+                    <th>Severity</th>
+                    <th>Protocol</th>
+                    <th>Service</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody id="alertTable"></tbody>
+        </table>
+    </section>
+
+    <script>
+        async function refreshStats() {
+            try {
+                const response = await fetch("/api/stats");
+
+                if (!response.ok) throw new Error("Model unavailable");
+
+                const data = await response.json();
+
+                document.getElementById("total").textContent = data.total_records;
+                document.getElementById("normal").textContent = data.normal;
+                document.getElementById("suspicious").textContent = data.suspicious;
+                document.getElementById("alerts").textContent = data.alerts;
+
+                document.getElementById("status").textContent = "Connected";
+
+            } catch (error) {
+                document.getElementById("status").textContent =
+                    "Waiting for AI model";
+            }
+        }
+
+        async function loadTraffic() {
+            const classification = document.getElementById("classification").value;
+            const protocol = document.getElementById("protocol").value;
+
+            const params = new URLSearchParams();
+
+            if (classification) params.set("classification", classification);
+            if (protocol) params.set("protocol", protocol);
+
+            const response = await fetch("/api/traffic?" + params);
+            if (!response.ok) return;
+
+            const records = await response.json();
+
+            document.getElementById("trafficTable").innerHTML =
+                records.map(record => `
+                    <tr>
+                        <td>${record.classification}</td>
+                        <td>${record.protocol}</td>
+                        <td>${record.service}</td>
+                        <td>${record.detection_score}%</td>
+                    </tr>
+                `).join("");
+        }
+
+        async function loadAlerts() {
+            const response = await fetch("/api/alerts");
+            if (!response.ok) return;
+
+            const alerts = await response.json();
+
+            document.getElementById("alertTable").innerHTML =
+                alerts.map(alert => `
+                    <tr>
+                        <td>${alert.alert_id}</td>
+                        <td>${alert.severity}</td>
+                        <td>${alert.protocol}</td>
+                        <td>${alert.service}</td>
+                        <td>${alert.status}</td>
+                    </tr>
+                `).join("");
+        }
+
+        async function updateDashboard() {
+            await refreshStats();
+            await loadTraffic();
+            await loadAlerts();
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 3000);
+    </script>
+
+</body>
+</html>
