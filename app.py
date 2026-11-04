@@ -1,5 +1,6 @@
+
 import os
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 
 from config import Config
 from detection.engine import NetworkDetectionEngine
@@ -8,7 +9,6 @@ from monitoring.service import NetworkSecuritySystem
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Initialise the AI detection system
 security_system = None
 model_loaded = False
 
@@ -20,7 +20,7 @@ try:
     model_loaded = True
 
 except FileNotFoundError:
-    print("AI model not available yet. Waiting for model setup.")
+    print("AI model not available. Model setup is required.")
 
 except Exception as error:
     print("Model initialisation error:", error)
@@ -28,12 +28,7 @@ except Exception as error:
 
 @app.route("/")
 def home():
-    return jsonify({
-        "system": "AI-Based Public Wi-Fi Security Monitoring System",
-        "status": "online",
-        "model_loaded": model_loaded,
-        "mode": "dataset demonstration"
-    })
+    return render_template("index.html")
 
 
 @app.route("/api/health")
@@ -93,7 +88,9 @@ def analyse():
     traffic_record = request.get_json(silent=True)
 
     if not isinstance(traffic_record, dict):
-        return jsonify({"error": "A JSON traffic record is required"}), 400
+        return jsonify({
+            "error": "A JSON traffic record is required"
+        }), 400
 
     required_features = NetworkDetectionEngine.feature_names
 
