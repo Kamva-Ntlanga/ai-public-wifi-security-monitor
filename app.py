@@ -448,9 +448,12 @@ def alerts():
             "error": "AI model not loaded"
         }), 503
 
-    return jsonify(
-        security_system.get_alerts()
-    )
+    guest_alerts = [
+        alert for alert in security_system.get_alerts()
+        if alert.get("session_id")
+    ]
+
+    return jsonify(guest_alerts)
 
 
 # MANUAL AI TRAFFIC ANALYSIS
