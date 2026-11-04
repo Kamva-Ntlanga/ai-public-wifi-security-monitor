@@ -186,6 +186,12 @@ def generate_activity():
             "error": "Please connect to the simulated Wi-Fi first."
         }), 401
 
+    if session.get("status") == "Blocked (simulated)":
+        return jsonify({
+            "success": False,
+            "error": "This simulated Wi-Fi session has been blocked."
+        }), 403
+
     if activity_type not in ACTIVITY_TYPES:
         return jsonify({
             "success": False,
@@ -247,6 +253,12 @@ def generate_activity():
             "capture_type": "SIMULATED"
         }
 
+        if traffic_result["classification"] == "Suspicious":
+            session["status"] = "Flagged"
+        elif session.get("status") != "Blocked (simulated)":
+            session["status"] = "Connected"
+
+        metadata["session_status"] = session["status"]
         traffic_result.update(metadata)
 
         # UPDATE MONITORING HISTORY
@@ -292,6 +304,50 @@ def generate_activity():
         }), 500
 
 
+# SIMULATED SESSION BLOCKING
+
+@app.route("/api/session/block", methods=["POST"])
+def block_session():
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id")
+
+    session = wifi_sessions.get(session_id)
+
+    if session is None:
+        return jsonify({
+            "success": False,
+            "error": "Session not found."
+        }), 404
+
+    if session.get("status") == "Blocked (simulated)":
+        return jsonify({
+            "success": True,
+            "message": "Session is already blocked."
+        })
+
+    session["status"] = "Blocked (simulated)"
+    session["blocked_at"] = __import__("datetime").datetime.now().isoformat()
+
+    for alert in security_system.get_alerts():
+        if alert.get("session_id") == session_id:
+            alert["status"] = "Blocked (simulated)"
+
+    for record in security_system.history.records:
+        if record.get("session_id") == session_id:
+            record["session_status"] = "Blocked (simulated)"
+
+    for record in security_system.processor.processed_records:
+        if record.get("session_id") == session_id:
+            record["session_status"] = "Blocked (simulated)"
+
+    return jsonify({
+        "success": True,
+        "message": "Simulated session blocked successfully.",
+        "session_id": session_id,
+        "status": session["status"]
+    })
+
+
 # SIMULATED PACKET EVENT HISTORY
 
 @app.route("/api/packets")
@@ -317,9 +373,36 @@ def stats():
             "error": "AI model not loaded"
         }), 503
 
-    return jsonify(
-        security_system.get_monitoring_data()
-    )
+    guest_records = [
+        record for record in security_system.history.records
+        if record.get("session_id")
+    ]
+
+    guest_alerts = [
+        alert for alert in security_system.get_alerts()
+        if alert.get("session_id")
+    ]
+
+    return jsonify({
+        "total_records": len(guest_records),
+        "normal": sum(
+            record["classification"] == "Normal"
+            for record in guest_records
+        ),
+        "suspicious": sum(
+            record["classification"] == "Suspicious"
+            for record in guest_records
+        ),
+        "alerts": len(guest_alerts),
+        "blocked_sessions": sum(
+            session.get("status") == "Blocked (simulated)"
+            for session in wifi_sessions.values()
+        ),
+        "active_sessions": sum(
+            session.get("status") != "Blocked (simulated)"
+            for session in wifi_sessions.values()
+        )
+    })
 
 
 # TRAFFIC HISTORY
@@ -335,7 +418,10 @@ def traffic():
     classification = request.args.get("classification")
     protocol = request.args.get("protocol")
 
-    records = security_system.get_history()
+    records = [
+        record for record in security_system.get_history()
+        if record.get("session_id")
+    ]
 
     if classification:
         records = [

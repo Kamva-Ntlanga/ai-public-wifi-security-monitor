@@ -406,13 +406,14 @@ footer {
                         <th>Severity</th>
                         <th>Classification</th>
                         <th>Detection Score</th>
-                        <th>Status</th>
+                        <th>Session Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
 
                 <tbody id="alertTable">
                     <tr>
-                        <td colspan="8">No alerts generated yet.</td>
+                        <td colspan="9">No alerts generated yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -650,7 +651,7 @@ async function loadAlerts() {
 
     if (!records.length) {
         table.innerHTML =
-            '<tr><td colspan="8">No alerts generated yet.</td></tr>';
+            '<tr><td colspan="9">No alerts generated yet.</td></tr>';
         return;
     }
 
@@ -679,11 +680,59 @@ async function loadAlerts() {
                     </span>
                 </td>
                 <td>${safe(alert.detection_score)}%</td>
-                <td>${safe(alert.status)}</td>
+                <td>${
+                    alert.status === "Blocked (simulated)"
+                        ? "Blocked (simulated)"
+                        : (alert.session_status || alert.status)
+                }</td>
+                <td>
+                    ${
+                        alert.session_id &&
+                        alert.classification === "Suspicious" &&
+                        alert.status !== "Blocked (simulated)"
+                        ? `<button type="button"
+                            onclick="blockSession('${safe(alert.session_id)}')"
+                            style="padding:7px 12px;cursor:pointer;">
+                            Block Session
+                           </button>`
+                        : alert.status === "Blocked (simulated)"
+                            ? '<span class="badge suspicious">Blocked</span>'
+                            : '—'
+                    }
+                </td>
             </tr>
         `;
     }).join("");
 }
+
+async function blockSession(sessionId) {
+    if (!confirm("Block this simulated guest session?")) {
+        return;
+    }
+
+    try {
+        const result = await api("/api/session/block", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                session_id: sessionId
+            })
+        });
+
+        if (!result.success) {
+            throw new Error(result.error || "Blocking failed.");
+        }
+
+        setMessage("Guest session blocked (simulated).");
+        await refreshDashboard();
+
+    } catch (error) {
+        setMessage(error.message);
+    }
+}
+
 
 async function refreshDashboard() {
     try {
