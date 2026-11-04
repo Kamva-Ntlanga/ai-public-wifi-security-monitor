@@ -36,11 +36,19 @@ except Exception as error:
     print("Application initialisation error:", error)
 
 
+# MAIN SECURITY DASHBOARD
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
+# PUBLIC WI-FI CONNECTION PORTAL
+@app.route("/wifi")
+def wifi_portal():
+    return render_template("wifi_portal.html")
+
+
+# SYSTEM HEALTH
 @app.route("/api/health")
 def health():
     return jsonify({
@@ -50,6 +58,7 @@ def health():
     })
 
 
+# MONITORING STATISTICS
 @app.route("/api/stats")
 def stats():
     if security_system is None:
@@ -58,6 +67,7 @@ def stats():
     return jsonify(security_system.get_monitoring_data())
 
 
+# TRAFFIC HISTORY
 @app.route("/api/traffic")
 def traffic():
     if security_system is None:
@@ -83,6 +93,7 @@ def traffic():
     return jsonify(records[-100:])
 
 
+# SECURITY ALERTS
 @app.route("/api/alerts")
 def alerts():
     if security_system is None:
@@ -91,6 +102,7 @@ def alerts():
     return jsonify(security_system.get_alerts())
 
 
+# MANUAL TRAFFIC ANALYSIS
 @app.route("/api/analyse", methods=["POST"])
 def analyse():
     if security_system is None:
@@ -124,6 +136,7 @@ def analyse():
         return jsonify({"error": str(error)}), 400
 
 
+# START TRAFFIC REPLAY
 @app.route("/api/replay/start", methods=["POST"])
 def start_replay():
     if replay_engine is None:
@@ -135,6 +148,7 @@ def start_replay():
         return jsonify({"error": str(error)}), 500
 
 
+# PAUSE TRAFFIC REPLAY
 @app.route("/api/replay/pause", methods=["POST"])
 def pause_replay():
     if replay_engine is None:
@@ -143,6 +157,7 @@ def pause_replay():
     return jsonify(replay_engine.pause())
 
 
+# STOP TRAFFIC REPLAY
 @app.route("/api/replay/stop", methods=["POST"])
 def stop_replay():
     if replay_engine is None:
@@ -151,6 +166,7 @@ def stop_replay():
     return jsonify(replay_engine.stop())
 
 
+# REPLAY STATUS
 @app.route("/api/replay/status")
 def replay_status():
     if replay_engine is None:
