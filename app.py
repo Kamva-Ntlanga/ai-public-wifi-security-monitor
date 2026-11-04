@@ -5,11 +5,13 @@ from flask import Flask, jsonify, request, render_template
 from config import Config
 from detection.engine import NetworkDetectionEngine
 from monitoring.service import NetworkSecuritySystem
+from monitoring.replay import TrafficReplay
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 security_system = None
+replay_engine = None
 model_loaded = False
 
 try:
@@ -17,13 +19,21 @@ try:
     engine.load_model()
 
     security_system = NetworkSecuritySystem(engine)
+
+    replay_engine = TrafficReplay(
+        security_system,
+        dataset_path="data/KDDTrain+.txt",
+        interval=1.0
+    )
+
     model_loaded = True
+    print("AI model loaded successfully.")
 
 except FileNotFoundError:
-    print("AI model not available. Model setup is required.")
+    print("AI model or dataset not available.")
 
 except Exception as error:
-    print("Model initialisation error:", error)
+    print("Application initialisation error:", error)
 
 
 @app.route("/")
@@ -35,7 +45,8 @@ def home():
 def health():
     return jsonify({
         "application": "running",
-        "model_loaded": model_loaded
+        "model_loaded": model_loaded,
+        "replay_available": replay_engine is not None
     })
 
 
@@ -111,6 +122,41 @@ def analyse():
 
     except Exception as error:
         return jsonify({"error": str(error)}), 400
+
+
+@app.route("/api/replay/start", methods=["POST"])
+def start_replay():
+    if replay_engine is None:
+        return jsonify({"error": "Replay engine unavailable"}), 503
+
+    try:
+        return jsonify(replay_engine.start())
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
+
+
+@app.route("/api/replay/pause", methods=["POST"])
+def pause_replay():
+    if replay_engine is None:
+        return jsonify({"error": "Replay engine unavailable"}), 503
+
+    return jsonify(replay_engine.pause())
+
+
+@app.route("/api/replay/stop", methods=["POST"])
+def stop_replay():
+    if replay_engine is None:
+        return jsonify({"error": "Replay engine unavailable"}), 503
+
+    return jsonify(replay_engine.stop())
+
+
+@app.route("/api/replay/status")
+def replay_status():
+    if replay_engine is None:
+        return jsonify({"error": "Replay engine unavailable"}), 503
+
+    return jsonify(replay_engine.get_status())
 
 
 if __name__ == "__main__":
