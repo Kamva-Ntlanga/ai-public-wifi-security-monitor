@@ -9,16 +9,36 @@ from config import Config
 from detection.engine import NetworkDetectionEngine
 from monitoring.service import NetworkSecuritySystem
 from monitoring.replay import TrafficReplay
+from data.loader import load_dataset
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 security_system = None
 replay_engine = None
+simulation_dataset = None
 model_loaded = False
 
-# Stores simulated Wi-Fi sessions while the application is running.
 wifi_sessions = {}
+
+ACTIVITY_TYPES = {
+    "browse": {
+        "name": "Browsing websites",
+        "label": 0
+    },
+    "download": {
+        "name": "Downloading a file",
+        "label": 0
+    },
+    "repeated_requests": {
+        "name": "Repeated network requests",
+        "label": 1
+    },
+    "unusual_connection": {
+        "name": "Unusual connection pattern",
+        "label": 1
+    }
+}
 
 try:
     engine = NetworkDetectionEngine(Config.MODEL_PATH)
@@ -66,11 +86,9 @@ def health():
     })
 
 
-# Register a user in the simulated Wi-Fi environment.
 @app.route("/api/wifi/connect", methods=["POST"])
 def wifi_connect():
     data = request.get_json(silent=True) or {}
-
     username = str(data.get("username", "")).strip()
 
     if not username:
@@ -99,10 +117,9 @@ def wifi_connect():
         "message": "Simulated Wi-Fi connection successful.",
         "session": wifi_sessions[session_id],
         "next_page": "/activity?session_id=" + session_id
-    }), 200
+    })
 
 
-# Retrieve a simulated Wi-Fi session.
 @app.route("/api/wifi/session/<session_id>")
 def wifi_session(session_id):
     session = wifi_sessions.get(session_id)
@@ -117,6 +134,96 @@ def wifi_session(session_id):
         "success": True,
         "session": session
     })
+
+
+@app.route("/api/activity/generate", methods=["POST"])
+def generate_activity():
+    global simulation_dataset
+
+    if security_system is None:
+        return jsonify({"error": "AI model not loaded"}), 503
+
+    data = request.get_json(silent=True) or {}
+
+    session_id = data.get("session_id")
+    activity_type = data.get("activity")
+
+    session = wifi_sessions.get(session_id)
+
+    if session is None:
+        return jsonify({
+            "success": False,
+            "error": "Please connect to the simulated Wi-Fi first."
+        }), 401
+
+    if activity_type not in ACTIVITY_TYPES:
+        return jsonify({
+            "success": False,
+            "error": "Invalid activity selected."
+        }), 400
+
+    try:
+        if simulation_dataset is None:
+            simulation_dataset = load_dataset("data/KDDTrain+.txt")
+
+        activity = ACTIVITY_TYPES[activity_type]
+        expected_label = activity["label"]
+
+        matching_records = simulation_dataset[
+            simulation_dataset["actual_label"] == expected_label
+        ]
+
+        if matching_records.empty:
+            return jsonify({
+                "success": False,
+                "error": "No suitable benchmark traffic records found."
+            }), 500
+
+        sample = matching_records.sample(n=1).iloc[0]
+
+        traffic_record = {
+            feature: sample[feature]
+            for feature in NetworkDetectionEngine.feature_names
+        }
+
+        result = security_system.analyse_traffic(traffic_record)
+
+        traffic_result = result["traffic"]
+
+        metadata = {
+            "username": session["username"],
+            "session_id": session_id,
+            "activity": activity["name"],
+            "benchmark_label": (
+                "Attack" if expected_label == 1 else "Normal"
+            )
+        }
+
+        traffic_result.update(metadata)
+
+        if security_system.history.records:
+            security_system.history.records[-1].update(metadata)
+
+        if security_system.processor.processed_records:
+            security_system.processor.processed_records[-1].update(metadata)
+
+        if result["alert"]:
+            result["alert"].update(metadata)
+
+        return jsonify({
+            "success": True,
+            "activity": activity["name"],
+            "benchmark_label": metadata["benchmark_label"],
+            "traffic": traffic_result,
+            "alert": result["alert"],
+            "message": "Simulated activity analysed by the AI model."
+        })
+
+    except Exception as error:
+        return jsonify({
+            "success": False,
+            "error": str(error)
+        }), 500
 
 
 @app.route("/api/stats")
