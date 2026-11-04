@@ -1,5 +1,5 @@
-import pandas as pd
 
+import pandas as pd
 
 FEATURE_NAMES = [
     "duration", "protocol_type", "service", "flag",
@@ -27,16 +27,27 @@ def load_dataset(file_path):
 
     if dataset.shape[1] != 43:
         raise ValueError(
-            "Invalid NSL-KDD dataset. Expected 43 columns."
+            f"Expected 43 columns, received {dataset.shape[1]}"
         )
 
     traffic = dataset.iloc[:, :41].copy()
     traffic.columns = FEATURE_NAMES
 
-    labels = dataset.iloc[:, 41].astype(str).str.strip()
+    labels = (
+        dataset.iloc[:, 41]
+        .astype(str)
+        .str.strip()
+        .str.rstrip(".")
+        .str.lower()
+    )
 
     traffic["actual_label"] = (
         labels != "normal"
     ).astype(int)
+
+    print("Dataset loaded successfully.")
+    print("Total records:", len(traffic))
+    print("Normal records:", (traffic["actual_label"] == 0).sum())
+    print("Attack records:", (traffic["actual_label"] == 1).sum())
 
     return traffic
