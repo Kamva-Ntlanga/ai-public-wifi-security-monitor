@@ -5,11 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Public Wi-Fi Access Portal</title>
-
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -19,7 +16,7 @@
             justify-content: center;
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #08111f, #142d49);
-            color: #ffffff;
+            color: white;
             padding: 20px;
         }
 
@@ -75,7 +72,7 @@
             font-size: 14px;
         }
 
-        input {
+        input[type="text"] {
             width: 100%;
             padding: 13px;
             border-radius: 8px;
@@ -96,8 +93,7 @@
         }
 
         .terms input {
-            width: auto;
-            margin: 2px 0 0;
+            margin-top: 2px;
         }
 
         button {
@@ -112,8 +108,9 @@
             cursor: pointer;
         }
 
-        button:hover {
-            background: #0872ce;
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
         }
 
         #message {
@@ -131,11 +128,9 @@
         }
     </style>
 </head>
-
 <body>
 
 <div class="portal">
-
     <div class="wifi-icon">📶</div>
 
     <h1>Public Wi-Fi Access</h1>
@@ -150,26 +145,26 @@
     </div>
 
     <form id="wifiForm">
-
         <label for="username">Username or Guest Name</label>
 
         <input
             type="text"
             id="username"
             placeholder="Enter your name"
+            maxlength="60"
             required
         >
 
         <div class="terms">
             <input type="checkbox" id="terms" required>
-
             <label for="terms">
                 I agree to the simulated public Wi-Fi usage terms.
             </label>
         </div>
 
-        <button type="submit">Connect to Wi-Fi</button>
-
+        <button type="submit" id="connectButton">
+            Connect to Wi-Fi
+        </button>
     </form>
 
     <div id="message"></div>
@@ -177,29 +172,50 @@
     <div class="footer">
         AI-Based Public Wi-Fi Security Monitoring Prototype
     </div>
-
 </div>
 
 <script>
-    document.getElementById("wifiForm").addEventListener("submit", function(event) {
+document.getElementById("wifiForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
 
-        event.preventDefault();
+    const username = document.getElementById("username").value.trim();
+    const message = document.getElementById("message");
+    const button = document.getElementById("connectButton");
 
-        const username = document.getElementById("username").value.trim();
+    if (!username) return;
 
-        if (!username) {
-            return;
+    button.disabled = true;
+    button.textContent = "Connecting...";
+    message.textContent = "Registering your simulated Wi-Fi session...";
+    message.style.color = "#a9b8ca";
+
+    try {
+        const response = await fetch("/api/wifi/connect", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username: username })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || "Connection failed.");
         }
 
-        sessionStorage.setItem("wifi_username", username);
+        message.textContent = "Connection successful! Redirecting...";
+        message.style.color = "#4ade80";
 
-        document.getElementById("message").textContent =
-            "Connection successful! Welcome, " + username +
-            ". You are now connected to the simulated public Wi-Fi network.";
+        window.location.href = result.next_page;
 
-        document.getElementById("message").style.color = "#4ade80";
-
-    });
+    } catch (error) {
+        message.textContent = error.message;
+        message.style.color = "#f87171";
+        button.disabled = false;
+        button.textContent = "Connect to Wi-Fi";
+    }
+});
 </script>
 
 </body>
